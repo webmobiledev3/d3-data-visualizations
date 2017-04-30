@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title></title>
+<meta charset="utf-8">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+  <link rel="stylesheet" type="text/css" href="/css/angular-material.min.css">
+  <link rel="stylesheet" type="text/css" media="all" href="/css/daterangepicker.css" />
+<style>
+
+    .links line {
+      stroke: black;
+      stroke-opacity: 0.6;
+    }
+
+    .nodes circle {
+      stroke: #fff;
+      stroke-width: 1.5px;
+    }
+
+    .row {
+      padding: 20px;
+    }
+
+    .btn.zoom {
+      font-size: 20px;
+      width: 60px;
+    }
+    .btn.zoom.in {
+      border-bottom-right-radius: 0;
+      border-top-right-radius: 0;
+    }
+    .btn.zoom.out {
+      border-bottom-left-radius: 0;
+      border-top-left-radius: 0;
+    }
+    .input-group
+    {
+      margin: 20px 0;
+    }
+    .col-md-2
+    {
+      padding: 20px;
+      border: solid 1px #ccc;
+      border-radius: 10px;
+    }
+    .panel {
+      padding: 20px;
+      opacity: 0.9;
+    }
+    md-slider.md-default-theme .md-track.md-track-fill, md-slider .md-track.md-track-fill {
+      background-color: darkgreen;
+    }
+    md-slider.md-default-theme .md-thumb:after, md-slider .md-thumb:after {
+      background-color: darkgreen;
+      border-color: darkgreen;
+    }
+    md-slider.md-default-theme .md-focus-ring, md-slider .md-focus-ring {
+      background-color: darkgreen;
+    }
+    h3 span {
+      color: #c00;
+      font-weight: bold;
+    }
+    md-input-container {
+      display: none;
+    }
+    #arrow {
+      fill: black;
+    }
+    line {
+      opacity: 0.3;
+    }      
+</style>
+<script type="text/javascript" src="graph_v4.js"></script>
+</head>
+<body ng-app="firstApplication">
+  <div class="row" ng-controller="sliderController as ctrl">
+    <div class="col-md-9 graph">
+    </div>
+    <div class="col-md-3">
+        <div class="panel panel-default">
+            <div id="gui" class="text-center">
+              <button class="btn btn-primary zoom in">+</button>
+              <button class="btn btn-default zoom out">-</button>
+            </div>
+            <div class="input-group">
+              <input type="text" class="form-control" placeholder="Search">
+              <div class="input-group-btn">
+                <button class="btn btn-default" type="submit">
+                  <i class="glyphicon glyphicon-search"></i>
+                </button>
+              </div>
+            </div>
+            <div class="form-group">
+              <select class="form-control" id="sel" ng-model="selectedName" ng-change="dropdownChange()">
+                <option value="{{x.id}}" ng-repeat="x in pName" ng-selected="x.id===selectedName">{{x.id}}</option>
+              </select>
+            </div>
+            <h3 class="text-center">Report As of Last <span>{{day}}</span> Days</h3>
+            <md-slider-container>
+              <md-slider flex min="1" max="{{nodes.length}}" ng-model="day" aria-label="day" id="day-slider" class="m-l-0" ng-change="sliderChange()"></md-slider>
+              <md-input-container>
+                <input type="number" flex ng-model="day" aria-label="day" aria-controls="day-slider">
+              </md-input-container>
+            </md-slider-container>
+            <div class="form-group">
+                <label for="startDate">Start Date</label>
+                <input type="text" class="form-control" id="startDate" value="07/01/2015">
+            </div>
+            <div class="form-group">
+                <label for="endDate">End Date</label>
+                <input type="text" class="form-control" id="endDate" value="07/15/2015">
+            </div>
+            <button class="btn btn-primary btn-block">Button1</button>
+            <button class="btn btn-primary btn-block">Button2</button>        
+        </div>
+    </div>
+  </div>
+
+  <script src="/js/angular.min.js"></script>
+  <script src="/js/angular-animate.min.js"></script>
+  <script src="/js/angular-aria.min.js"></script>
+  <script src="/js/angular-material.min.js"></script>
+  <script src="/js/jquery.min.js"></script>
+  <script src="/js/bootstrap.min.js"></script>
+  <script src="/js/moment.js"></script>
+  <script src="/js/daterangepicker.js"></script>
+  <script src="/js/d3.v4.min.js"></script>
+  <script type="text/javascript">
+    //define Angular Module
+    angular.module('firstApplication', ['ngMaterial'])
+      .controller('sliderController', sliderController);
+
+    //define controller
+    function sliderController($scope, $mdSidenav) {
+      $scope.day =  1;             //slider variable
+      $scope.pName = [];           //dropdown variable
+      $scope.linkCounts = [];      //number of link per each node
+      $scope.nodes = [];
+      $scope.links = [];
+      $scope.selectedName = "All";    //selected id when select dropdown
+      $scope.graph = {};
+      $scope.animTime = 0;      //hide and show animation time
+      $scope.r = 0;
+      $scope.fadeOpacity = 0.05;     //opacity value when mouseover
+      $scope.brushOpacity = 0.2;
+      $scope.enableBrush = false;
+
+      var width = $(window).width(),
+          height = $(window).height();
+
+      //get data from json and call drawfunction            
+      d3.json("BankData_v2.json", function(error, data){
+      // d3.json("json_server.json", function(error, data){
+        $scope.graph = getGraphData(data);
+        drawGraph($scope.graph);
+        console.log($scope.nodes);
+      });
+
+      //popup datepicker      
+      $('#startDate').daterangepicker({
+          singleDatePicker: true,
+          startDate: moment().subtract(6, 'days')
+      });
+      $('#endDate').daterangepicker({
+          singleDatePicker: true,
+          startDate: moment()
+      });
+
+      //dropdown change function
+      $scope.dropdownChange = function(){
+
+      }
+
+      //slider change function
+      $scope.sliderChange = function(){
+
+      }
+
+      //draw function
+      function drawGraph(data) {
+      }
+    }
+  </script>
+</body>
+</html>
